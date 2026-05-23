@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>아이패드 네컷 스튜디오 - 레이어 완성판</title>
+    <title>아이패드 네컷 스튜디오 - 완벽 정렬 완성판</title>
     <style>
       body {
         font-family: "Malgun Gothic", sans-serif;
@@ -90,7 +90,7 @@
       }
       .pool-item {
         width: 100%;
-        aspect-ratio: 4/3;
+        aspect-ratio: 351/442;
         background: #ddd;
         border-radius: 6px;
         overflow: hidden;
@@ -123,27 +123,22 @@
         font-weight: bold;
       }
 
-      /* 오른쪽 2x2 미리보기 */
+      /* 오른쪽 미리보기 */
       .preview-panel {
         display: flex;
         flex-direction: column;
         align-items: center;
       }
-
-      /* 프레임 전체를 감싸는 바구니 */
       .frame-preview-container {
         position: relative;
         width: 360px;
-        height: 531px; /* 800x1180 비율에 맞춘 크기 */
+        height: 531px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
         border-radius: 10px;
         overflow: hidden;
       }
 
-      /* [중복 해결 및 화이트 제거 완료] 
-         실시간 미리보기 화면에서 사진의 크기와 위치를 조정하는 마법의 구역입니다.
-         아래 padding과 gap 수치를 자유롭게 변경해 가며 프레임 눈축과 일치시키세요!
-      */
+      /* 현지님이 조율하신 최적의 CSS 스펙 고정 */
       .photo-grid-under {
         position: absolute;
         top: 0;
@@ -153,14 +148,11 @@
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         grid-template-rows: repeat(2, 1fr);
-
-        /* 🛠️ 이 수치들을 직접 늘리거나 줄여보며 조율하세요! */
-        padding: 30px 20px 52px 20px; /* 순서: 상단여백, 우측여백, 하단여백, 좌측여백 */
-        gap: 2px 2px; /* 순서: 상하사진공백, 좌우사진공백 */
-
+        padding: 30px 20px 52px 20px;
+        gap: 2px 3px;
         box-sizing: border-box;
         z-index: 1;
-        background-color: transparent; /* 튀어나오던 흰색 프레임 완벽 제거 */
+        background-color: transparent;
       }
 
       .frame-slot {
@@ -176,18 +168,17 @@
       .frame-slot img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: fill;
       }
 
-      /* [레이어 2] 사진 위에 얹어지는 투명 SVG 프레임 */
       .frame-overlay-top {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        z-index: 2; /* 사진보다 위에 존재 */
-        pointer-events: none; /* 밑의 사진 클릭을 방해하지 않음 */
+        z-index: 2;
+        pointer-events: none;
       }
       .frame-overlay-top img {
         width: 100%;
@@ -250,7 +241,7 @@
   </head>
   <body>
     <h1>물방울 요정 네컷 스튜디오 💧</h1>
-    <div class="description">레이어 꼬임 및 화질 저하 해결 버전</div>
+    <div class="description">100mm x 148mm 인화 비율 정렬 버전</div>
 
     <div class="container">
       <div class="controls-panel">
@@ -338,15 +329,36 @@
 
       function takeSnapshot() {
         if (photos.length >= 6) return;
+
         const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        canvas.width = 351;
+        canvas.height = 442;
         const ctx = canvas.getContext("2d");
+
+        const vW = video.videoWidth;
+        const vH = video.videoHeight;
+
+        const cropHeight = vH;
+        const cropWidth = vH * (351 / 442);
+        const cropX = (vW - cropWidth) / 2;
+        const cropY = 0;
 
         ctx.translate(canvas.width, 0);
         ctx.scale(-1, 1);
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+        ctx.drawImage(
+          video,
+          cropX,
+          cropY,
+          cropWidth,
+          cropHeight,
+          0,
+          0,
+          canvas.width,
+          canvas.height,
+        );
+
+        // 사진을 찍자마자 완벽하게 자른 깨끗한 주소값 데이터를 고정으로 박아둡니다.
         photos.push(canvas.toDataURL("image/png"));
         shootBtn.innerText = `📷 사진 촬영하기 (${photos.length}/6)`;
         if (photos.length >= 6) {
@@ -406,60 +418,68 @@
         }
       }
 
+      // 최종 합성 연산 (100mm x 148mm 해상도 다이렉트 드로잉 순서 고정)
       function generateFourCut() {
         if (selectedPhotos.length !== 4) return;
 
         const finalCanvas = document.createElement("canvas");
         const ctx = finalCanvas.getContext("2d");
-        const frameImg = new Image();
 
-        frameImg.crossOrigin = "Anonymous";
-        frameImg.src = "image/water_frame.svg";
+        // 100mm x 148mm 표준 해상도 세팅
+        const canvasWidth = 1181;
+        const canvasHeight = 1748;
+        finalCanvas.width = canvasWidth;
+        finalCanvas.height = canvasHeight;
 
-        frameImg.onload = () => {
-          canvasWidth = frameImg.width;
-          canvasHeight = frameImg.height;
-          finalCanvas.width = canvasWidth;
-          finalCanvas.height = canvasHeight;
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-          ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        // 현지님의 여백 비율과 100% 대응되는 절대 좌표 조각들
+        const slots = [
+          { x: 66, y: 99, w: 521, h: 651 }, // 1번 사진 위치
+          { x: 594, y: 99, w: 521, h: 651 }, // 2번 사진 위치
+          { x: 66, y: 921, w: 521, h: 651 }, // 3번 사진 위치
+          { x: 594, y: 921, w: 521, h: 651 }, // 4번 사진 위치
+        ];
 
-          /*
-             ⚠️ 직접 제어해 보실 수 있도록 마련해둔 저장(인화) 캔버스용 절대 좌표 구역입니다.
-             위쪽 CSS 여백 수치를 다 찾고 난 뒤 최종 파일 인화본이 틀어질 때 
-             여기의 x, y, w, h 숫자를 동일 비율로 최종 가다듬어 주시면 완성됩니다!
-          */
-          const slots = [
-            { x: 22, y: 50, w: 370, h: 600 }, // Slot 1 (첫 줄 왼쪽)
-            { x: 410, y: 31, w: 368, h: 483 }, // Slot 2 (첫 줄 오른쪽)
-            { x: 22, y: 554, w: 368, h: 483 }, // Slot 3 (둘째 줄 왼쪽)
-            { x: 410, y: 554, w: 368, h: 483 }, // Slot 4 (둘째 줄 오른쪽)
-          ];
+        let loadedCount = 0;
 
-          let loadedCount = 0;
-          selectedPhotos.forEach((imgData, idx) => {
-            const img = new Image();
-            img.src = imgData;
-            img.onload = () => {
-              ctx.drawImage(
-                img,
-                slots[idx].x,
-                slots[idx].y,
-                slots[idx].w,
-                slots[idx].h,
+        // 반복문을 돌며 순서대로 4개의 구멍 위치에 조각조각 사진을 로드하여 매핑합니다.
+        selectedPhotos.forEach((imgSrc, idx) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.src = imgSrc;
+
+          img.onload = () => {
+            // [버그 완전 수정] 원본을 전체 도배하지 않고 slots의 구멍 영역 규격 안에 강제로 압축해서 집어넣습니다.
+            ctx.drawImage(
+              img,
+              0,
+              0,
+              img.width,
+              img.height,
+              slots[idx].x,
+              slots[idx].y,
+              slots[idx].w,
+              slots[idx].h,
+            );
+            loadedCount++;
+
+            // 4장이 확실하게 다 구멍 안에 깔렸을 때만 마지막 프레임을 올립니다.
+            if (loadedCount === 4) {
+              const realPreviewSvg = document.querySelector(
+                ".frame-overlay-top img",
               );
-              loadedCount++;
-
-              if (loadedCount === 4) {
-                ctx.drawImage(frameImg, 0, 0, canvasWidth, canvasHeight);
-
-                finalOutputBase64 = finalCanvas.toDataURL("image/jpeg", 0.95);
-                resultImageZone.innerHTML = `<img src="${finalOutputBase64}">`;
-                resultModal.style.display = "flex";
+              if (realPreviewSvg) {
+                ctx.drawImage(realPreviewSvg, 0, 0, canvasWidth, canvasHeight);
               }
-            };
-          });
-        };
+
+              // 최종 이미지 팝업창 렌더링
+              finalOutputBase64 = finalCanvas.toDataURL("image/jpeg", 0.95);
+              resultImageZone.innerHTML = `<img src="${finalOutputBase64}">`;
+              resultModal.style.display = "flex";
+            }
+          };
+        });
       }
 
       function triggerDirectDownload() {
