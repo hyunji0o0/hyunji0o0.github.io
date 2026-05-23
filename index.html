@@ -6,20 +6,20 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>아이패드 전용 네컷 스튜디오 (2x2 바둑판 버전)</title>
+    <title>아이패드 네컷 스튜디오 - 레이어 완성판</title>
     <style>
       body {
         font-family: "Malgun Gothic", sans-serif;
         display: flex;
         flex-direction: column;
         align-items: center;
-        background-color: #f5f5f5;
+        background-color: #f0f4f8;
         margin: 0;
         padding: 20px;
         touch-action: manipulation;
       }
       h1 {
-        color: #333;
+        color: #0056b3;
         margin-bottom: 5px;
       }
       .description {
@@ -32,22 +32,29 @@
         max-width: 1200px;
         width: 100%;
         justify-content: center;
+        align-items: flex-start;
       }
 
-      /* 왼쪽 제어 및 촬영 영역 */
+      /* 왼쪽 촬영 패널 */
       .controls-panel {
         flex: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
-        max-width: 500px;
+        max-width: 480px;
+        background: white;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
       }
       #camera-view {
         width: 100%;
         max-width: 440px;
+        aspect-ratio: 4/3;
         background: #000;
-        border-radius: 12px; /* 좌우반전 제거 (거울모드 해제) */
+        border-radius: 12px;
         transform: scaleX(-1);
+        border: 3px solid #b3d9ff;
       }
       .btn {
         margin-top: 15px;
@@ -67,7 +74,7 @@
         cursor: not-allowed;
       }
 
-      /* 6장 촬영 풀 */
+      /* 6장 풀 */
       .pool-title {
         margin-top: 25px;
         font-weight: bold;
@@ -107,34 +114,55 @@
         background: #28a745;
         color: white;
         border-radius: 50%;
-        width: 24px;
-        height: 24px;
+        width: 26px;
+        height: 26px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 14px;
+        font-size: 15px;
         font-weight: bold;
       }
 
-      /* [변경] 오른쪽 네컷 프레임 미리보기 영역: 2x2 가로형 구조 */
+      /* 오른쪽 2x2 미리보기 */
       .preview-panel {
         display: flex;
         flex-direction: column;
         align-items: center;
       }
-      .frame-preview {
-        width: 460px;
-        height: 380px;
-        background-color: #fff;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+
+      /* 프레임 전체를 감싸는 바구니 */
+      .frame-preview-container {
+        position: relative;
+        width: 360px;
+        height: 531px; /* 800x1180 비율에 맞춘 크기 */
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      /* [중복 해결 및 화이트 제거 완료] 
+         실시간 미리보기 화면에서 사진의 크기와 위치를 조정하는 마법의 구역입니다.
+         아래 padding과 gap 수치를 자유롭게 변경해 가며 프레임 눈축과 일치시키세요!
+      */
+      .photo-grid-under {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         grid-template-rows: repeat(2, 1fr);
-        gap: 15px;
-        padding: 25px;
+
+        /* 🛠️ 이 수치들을 직접 늘리거나 줄여보며 조율하세요! */
+        padding: 30px 20px 52px 20px; /* 순서: 상단여백, 우측여백, 하단여백, 좌측여백 */
+        gap: 2px 2px; /* 순서: 상하사진공백, 좌우사진공백 */
+
         box-sizing: border-box;
-        border-radius: 8px;
+        z-index: 1;
+        background-color: transparent; /* 튀어나오던 흰색 프레임 완벽 제거 */
       }
+
       .frame-slot {
         background-color: #eaeaea;
         overflow: hidden;
@@ -143,15 +171,31 @@
         justify-content: center;
         color: #aaa;
         font-size: 14px;
-        border-radius: 4px;
+        border-radius: 3px;
       }
       .frame-slot img {
         width: 100%;
         height: 100%;
-        object-fit: cover; /* 미리보기 좌우반전 제거 */
+        object-fit: cover;
       }
 
-      /* 아이패드 전체화면 팝업 모달 */
+      /* [레이어 2] 사진 위에 얹어지는 투명 SVG 프레임 */
+      .frame-overlay-top {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 2; /* 사진보다 위에 존재 */
+        pointer-events: none; /* 밑의 사진 클릭을 방해하지 않음 */
+      }
+      .frame-overlay-top img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      /* 팝업 모달 */
       .modal {
         display: none;
         position: fixed;
@@ -164,14 +208,13 @@
         justify-content: center;
         z-index: 100;
         padding: 20px;
-        box-sizing: border-box;
       }
       .modal-content {
         background: white;
         padding: 25px;
         border-radius: 14px;
         text-align: center;
-        max-width: 550px;
+        max-width: 500px;
         width: 100%;
         max-height: 95vh;
         display: flex;
@@ -179,27 +222,26 @@
         align-items: center;
         overflow-y: auto;
       }
-
-      /* [변경] 모달 안 결과물 이미지 영역: 2x2 가로 비율에 맞춰 조절 */
       #result-image-zone {
-        width: 400px;
-        height: 320px;
+        width: 300px;
+        height: 442px;
         background: #eee;
         margin: 15px 0;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+        border-radius: 5px;
+        overflow: hidden;
       }
       #result-image-zone img {
         width: 100%;
         height: 100%;
         object-fit: contain;
       }
-
       .tip-box {
-        background: #e9ecef;
-        padding: 10px;
-        border-radius: 6px;
+        background: #e6f2ff;
+        padding: 12px;
+        border-radius: 8px;
         font-size: 14px;
-        color: #495057;
+        color: #0056b3;
         margin-bottom: 15px;
         width: 100%;
         box-sizing: border-box;
@@ -207,22 +249,17 @@
     </style>
   </head>
   <body>
-    <h1>인생 네컷 스튜디오 📸</h1>
-    <div class="description">2개씩 두 줄 (2x2 Grid) & 정방향 촬영 버전</div>
+    <h1>물방울 요정 네컷 스튜디오 💧</h1>
+    <div class="description">레이어 꼬임 및 화질 저하 해결 버전</div>
 
     <div class="container">
-      <!-- 왼쪽: 카메라 제어 및 6장 풀 -->
       <div class="controls-panel">
         <video id="camera-view" autoplay playsinline></video>
         <button id="shoot-btn" class="btn" onclick="takeSnapshot()">
           📷 사진 촬영하기 (0/6)
         </button>
-
-        <div class="pool-title">
-          촬영 앨범 (원하는 사진 4장을 순서대로 클릭)
-        </div>
+        <div class="pool-title">촬영 앨범 (원하는 사진 4장을 클릭)</div>
         <div id="photo-pool" class="photo-pool"></div>
-
         <button
           id="save-btn"
           class="btn"
@@ -234,41 +271,41 @@
         </button>
       </div>
 
-      <!-- 오른쪽: 실시간 2x2 프레임 미리보기 -->
       <div class="preview-panel">
-        <h3>실시간 매핑 프레임 (2x2)</h3>
-        <div id="frame-preview" class="frame-preview">
-          <div class="frame-slot" id="slot-0">Slot 1</div>
-          <div class="frame-slot" id="slot-1">Slot 2</div>
-          <div class="frame-slot" id="slot-2">Slot 3</div>
-          <div class="frame-slot" id="slot-3">Slot 4</div>
+        <h3>실시간 프레임 미리보기</h3>
+        <div class="frame-preview-container">
+          <div id="photo-grid" class="photo-grid-under">
+            <div class="frame-slot" id="slot-0">Slot 1</div>
+            <div class="frame-slot" id="slot-1">Slot 2</div>
+            <div class="frame-slot" id="slot-2">Slot 3</div>
+            <div class="frame-slot" id="slot-3">Slot 4</div>
+          </div>
+          <div class="frame-overlay-top">
+            <img src="image/water_frame.svg" alt="프레임" />
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 최종 결과 팝업 모달 -->
     <div id="result-modal" class="modal">
       <div class="modal-content">
-        <h2 style="margin: 5px 0">인생 네컷 인화 완료! 🎨</h2>
-
+        <h2>네컷사진 인화 완료! 🎉</h2>
         <div id="result-image-zone"></div>
-
         <div class="tip-box">
-          💡 **아이패드 저장 꿀팁**<br />
-          위의 완성된 사진을 **1초간 길게 누르면(Long Press)** <br />
-          [사진 앱에 저장] 하거나 곧바로 **[AirDrop]** 전송이 가능합니다!
+          💡 **아이패드 저장/공유 꿀팁**<br />
+          사진을 **1초간 길게 누르면** 사진 앱에 저장하거나 곧바로 **[AirDrop]**
+          전송이 가능합니다!
         </div>
-
         <button
           class="btn"
-          style="background-color: #007bff; margin-top: 0"
+          style="background-color: #007bff"
           onclick="triggerDirectDownload()"
         >
           📂 파일로 직접 저장하기
         </button>
         <button
           class="btn"
-          style="background-color: #6c757d; margin-top: 10px; padding: 10px"
+          style="background-color: #6c757d; margin-top: 10px"
           onclick="closeModal()"
         >
           다시 촬영하기
@@ -288,7 +325,6 @@
       let selectedPhotos = [];
       let finalOutputBase64 = null;
 
-      // 1. 아이패드 카메라 미디어 스트림 연동
       navigator.mediaDevices
         .getUserMedia({
           video: { width: 1280, height: 960, facingMode: "user" },
@@ -297,14 +333,11 @@
           video.srcObject = stream;
         })
         .catch((err) => {
-          console.error(err);
           alert("카메라 권한을 승인해주세요.");
         });
 
-      // 2. 찰칵! 스냅샷 찍기 (좌우반전 로직 완전 삭제)
       function takeSnapshot() {
         if (photos.length >= 6) return;
-
         const canvas = document.createElement("canvas");
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -314,25 +347,20 @@
         ctx.scale(-1, 1);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const imgUrl = canvas.toDataURL("image/png");
-        photos.push(imgUrl);
-
+        photos.push(canvas.toDataURL("image/png"));
         shootBtn.innerText = `📷 사진 촬영하기 (${photos.length}/6)`;
         if (photos.length >= 6) {
           shootBtn.disabled = true;
-          shootBtn.innerText = "6장 촬영 완료! 아래에서 골라주세요.";
+          shootBtn.innerText = "6장 촬영 완료!";
         }
-
         renderPool();
       }
 
-      // 3. 6장 리스트 출력 및 배지 상태 처리
       function renderPool() {
         photoPool.innerHTML = "";
-        photos.forEach((imgUrl, index) => {
+        photos.forEach((imgUrl) => {
           const item = document.createElement("div");
           item.className = "pool-item";
-
           const img = document.createElement("img");
           img.src = imgUrl;
           item.appendChild(img);
@@ -345,33 +373,28 @@
             badge.innerText = selectIndex + 1;
             item.appendChild(badge);
           }
-
           item.onclick = () => toggleSelect(imgUrl);
           photoPool.appendChild(item);
         });
       }
 
-      // 4. 사진 선택/선택 해제 토글 스위치
       function toggleSelect(imgUrl) {
         const index = selectedPhotos.indexOf(imgUrl);
-
         if (index > -1) {
           selectedPhotos.splice(index, 1);
         } else {
           if (selectedPhotos.length < 4) {
             selectedPhotos.push(imgUrl);
           } else {
-            alert("사진은 딱 4장만 고를 수 있습니다!");
+            alert("4장만 고를 수 있습니다!");
             return;
           }
         }
-
         saveBtn.disabled = selectedPhotos.length !== 4;
         renderPool();
         renderFramePreview();
       }
 
-      // 5. 우측 프레임 틀 실시간 업데이트
       function renderFramePreview() {
         for (let i = 0; i < 4; i++) {
           const slot = document.getElementById(`slot-${i}`);
@@ -383,7 +406,6 @@
         }
       }
 
-      // 6. 합성 메인 오케스트레이션
       function generateFourCut() {
         if (selectedPhotos.length !== 4) return;
 
@@ -391,77 +413,65 @@
         const ctx = finalCanvas.getContext("2d");
         const frameImg = new Image();
 
-        // ⚠️ 가지고 계신 2x2 프레임 이미지 파일명을 아래 적어주세요.
-        frameImg.src = "내_프레임_이미지_경로.png";
-
-        frameImg.onerror = () => {
-          performSynthesis(ctx, finalCanvas, null);
-        };
+        frameImg.crossOrigin = "Anonymous";
+        frameImg.src = "image/water_frame.svg";
 
         frameImg.onload = () => {
-          performSynthesis(ctx, finalCanvas, frameImg);
+          canvasWidth = frameImg.width;
+          canvasHeight = frameImg.height;
+          finalCanvas.width = canvasWidth;
+          finalCanvas.height = canvasHeight;
+
+          ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+          /*
+             ⚠️ 직접 제어해 보실 수 있도록 마련해둔 저장(인화) 캔버스용 절대 좌표 구역입니다.
+             위쪽 CSS 여백 수치를 다 찾고 난 뒤 최종 파일 인화본이 틀어질 때 
+             여기의 x, y, w, h 숫자를 동일 비율로 최종 가다듬어 주시면 완성됩니다!
+          */
+          const slots = [
+            { x: 22, y: 50, w: 370, h: 600 }, // Slot 1 (첫 줄 왼쪽)
+            { x: 410, y: 31, w: 368, h: 483 }, // Slot 2 (첫 줄 오른쪽)
+            { x: 22, y: 554, w: 368, h: 483 }, // Slot 3 (둘째 줄 왼쪽)
+            { x: 410, y: 554, w: 368, h: 483 }, // Slot 4 (둘째 줄 오른쪽)
+          ];
+
+          let loadedCount = 0;
+          selectedPhotos.forEach((imgData, idx) => {
+            const img = new Image();
+            img.src = imgData;
+            img.onload = () => {
+              ctx.drawImage(
+                img,
+                slots[idx].x,
+                slots[idx].y,
+                slots[idx].w,
+                slots[idx].h,
+              );
+              loadedCount++;
+
+              if (loadedCount === 4) {
+                ctx.drawImage(frameImg, 0, 0, canvasWidth, canvasHeight);
+
+                finalOutputBase64 = finalCanvas.toDataURL("image/jpeg", 0.95);
+                resultImageZone.innerHTML = `<img src="${finalOutputBase64}">`;
+                resultModal.style.display = "flex";
+              }
+            };
+          });
         };
       }
 
-      // 7. [구조 변형] 2x2 바둑판 격자 좌표 맵핑 및 드로잉
-      function performSynthesis(ctx, canvas, frameImg) {
-        // 가로형 2x2 레이아웃 규격 설정 (예시 비율: 가로 1200px X 세로 900px)
-        canvas.width = frameImg ? frameImg.width : 1200;
-        canvas.height = frameImg ? frameImg.height : 900;
-
-        if (frameImg) {
-          ctx.drawImage(frameImg, 0, 0);
-        } else {
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-
-        // [핵심 변경] 2줄 2열 배치 절대 좌표 매핑값 설계
-        // 1열 좌측상단 / 2열 우측상단 / 3열 좌측하단 / 4열 우측하단 순서
-        const slots = [
-          { x: 50, y: 50, w: 520, h: 370 }, // 1번 사진 (첫 줄 왼쪽)
-          { x: 630, y: 50, w: 520, h: 370 }, // 2번 사진 (첫 줄 오른쪽)
-          { x: 50, y: 480, w: 520, h: 370 }, // 3번 사진 (둘째 줄 왼쪽)
-          { x: 630, y: 480, w: 520, h: 370 }, // 4번 사진 (둘째 줄 오른쪽)
-        ];
-
-        let loadedCount = 0;
-        selectedPhotos.forEach((imgData, idx) => {
-          const img = new Image();
-          img.src = imgData;
-          img.onload = () => {
-            ctx.drawImage(
-              img,
-              slots[idx].x,
-              slots[idx].y,
-              slots[idx].w,
-              slots[idx].h,
-            );
-            loadedCount++;
-
-            if (loadedCount === 4) {
-              finalOutputBase64 = canvas.toDataURL("image/jpeg", 0.95);
-              resultImageZone.innerHTML = `<img src="${finalOutputBase64}" alt="최종 네컷사진">`;
-              resultModal.style.display = "flex";
-            }
-          };
-        });
-      }
-
-      // 8. 파일 직접 저장 실행
       function triggerDirectDownload() {
         if (!finalOutputBase64) return;
-
         const link = document.createElement("a");
         link.href = finalOutputBase64;
-        link.download = `2x2_Photo_${Date.now()}.jpg`;
-
+        link.download = `Photo_${Date.now()}.jpg`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       }
 
-      // 9. 리셋 및 닫기
       function closeModal() {
         resultModal.style.display = "none";
         photos = [];
